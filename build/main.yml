@@ -1,0 +1,16 @@
+jobs:
+
+- job:
+  displayName: Windows 64
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSource: 'spec'
+      versionSpec: '18.x'
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+      architecture: 'x64'
