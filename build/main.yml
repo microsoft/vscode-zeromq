@@ -24,7 +24,7 @@ extends:
   template: azure-pipelines/npm-package/pipeline.yml@templates
   parameters:
     npmPackages:
-      - name: jupyter-ipywidgets8
+      - name: vscode-zeromq
         testPlatforms: []
 
         buildSteps:
