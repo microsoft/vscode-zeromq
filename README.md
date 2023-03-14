@@ -1,6 +1,7 @@
 # vscode-zeromq
 
 This is an npm module for using zeromq binaries build in Azure Pipelines in a Node project. It is used by the [Jupyter Extension for VS Code](https://github.com/microsoft/vscode-jupyter-internal).
+The binaries can be found in the releases section of the [zeromq-prebuilt](https://github.com/microsoft/zeromq-prebuilt) repo.
 
 # How it works
 
@@ -15,9 +16,11 @@ await downloadZMQ()
 
 
 # Usage example
+Run the following as a `postinstall` step
 
 ```typescript
-const zeromq = require('vscode-zeromq'); // instead of require('zeromq')
+const { downloadZMQ } = require('vscode-zeromq');
+await downloadZMQ()
 ```
 
 ## Contributing
