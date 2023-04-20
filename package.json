@@ -18,14 +18,12 @@
   "homepage": "https://github.com/microsoft/vscode-zeromq#readme",
   "scripts": {
     "test": "node ./lib/index.test.js",
-		"downloadBinaries": "node ./build/prePublish.js"
-  },
-  "dependencies": {
-    "https-proxy-agent": "^5.0.1",
-    "proxy-from-env": "^1.1.0"
+    "downloadBinaries": "node ./build/prePublish.js"
   },
   "devDependencies": {
-    "@types/node": "^18.15.0"
+    "@types/node": "^18.15.0",
+    "https-proxy-agent": "^5.0.1",
+    "proxy-from-env": "^1.1.0"
   },
   "overrides": {
     "agent-base": "^6.0.2"

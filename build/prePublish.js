@@ -4,10 +4,10 @@
 "use strict";
 
 const path = require("path");
-const { download } = require("../lib/download");
+const { download } = require("./download");
 const fs = require("fs");
 
-const VERSION = require("../lib/index").VERSION;
+const VERSION = "6.0.0-beta.16.5";
 
 /**
  * Downloads the ZMQ binaries.
