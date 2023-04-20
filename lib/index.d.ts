@@ -3,7 +3,7 @@
 
 export type Options = {
   win32?: ("x64" | "ia32" | "arm64")[];
-  linux?: ("x64" | "arm64" | "armhf")[];
+  linux?: ("x64" | "arm64" | "armhf" | "arm")[];
   darwin?: ("x64" | "arm64")[];
   alpine?: ("x64" | "arm64")[];
 };
