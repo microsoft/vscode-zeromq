@@ -1,6 +1,6 @@
 {
   "name": "@vscode/zeromq",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A module for copying zeromq binaries built using Azure Pipelines into the zeromq package.",
   "main": "lib/index.js",
   "repository": {
@@ -17,14 +17,13 @@
   },
   "homepage": "https://github.com/microsoft/vscode-zeromq#readme",
   "scripts": {
-    "test": "node ./lib/index.test.js"
-  },
-  "dependencies": {
-    "https-proxy-agent": "^5.0.1",
-    "proxy-from-env": "^1.1.0"
+    "test": "node ./lib/index.test.js",
+    "downloadBinaries": "node ./build/prePublish.js"
   },
   "devDependencies": {
-    "@types/node": "^18.15.0"
+    "@types/node": "^18.15.0",
+    "https-proxy-agent": "^5.0.1",
+    "proxy-from-env": "^1.1.0"
   },
   "overrides": {
     "agent-base": "^6.0.2"
