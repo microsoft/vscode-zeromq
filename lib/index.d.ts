@@ -12,6 +12,9 @@ export type Options = {
  * Downloads the ZMQ binaries.
  *
  * @param {Options} options If not provided, then downloads all binaries for all platforms + archs.
+ * @param {boolean} [force] Whether to force the download of binaries, if false, will use binaries in `prebuilds` folder.
  * @return {*}  {Promise<void>}
  */
-export declare function downloadZMQ(options: Options): Promise<void>;
+export declare function downloadZMQ(options: Options, force?: boolean): Promise<void>;
+
+export const VERSION:string;

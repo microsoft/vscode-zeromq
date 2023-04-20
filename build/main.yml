@@ -31,4 +31,7 @@ extends:
           - script: npm ci
             displayName: Install dependencies
 
+          - script: npm run downloadBinaries
+            displayName: Download Binaries
+
         publishPackage: ${{ parameters.publishPackage }}
