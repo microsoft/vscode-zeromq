@@ -10,14 +10,8 @@ The binaries can be found in the releases section of the [zeromq-prebuilt](https
 * As part of the post install, the exported function `downloadZMQ` should be invoked as follows:
 ```typescript
 const { downloadZMQ } = require('vscode-zeromq');
-// Download all binaries for all platforms and all architectures
+// Download all binaries for all platforms and all architectures into the `node_modules/zeromq/prebuilds` folder.
 await downloadZMQ()
-
-// Download all windows binaries
-await downloadZMQ({win32:[]});
-
-// Download x64 windows binaries and arm64, x64 linux binaries
-await downloadZMQ({win32:['x64'], linux: ['arm64', 'x64']});
 ```
 	* This will replace all of the binaries found in the `zeromq` module with the prebuilt binaries.
 
@@ -29,12 +23,6 @@ Run the following as a `postinstall` step (with the desired arguments).
 const { downloadZMQ } = require('vscode-zeromq');
 // Download all binaries for all platforms and all architectures
 await downloadZMQ()
-
-// Download all windows binaries
-await downloadZMQ({win32:[]});
-
-// Download x64 windows binaries and arm64, x64 linux binaries
-await downloadZMQ({win32:['x64'], linux: ['arm64', 'x64']});
 ```
 
 ## Contributing
