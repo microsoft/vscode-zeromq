@@ -155,11 +155,13 @@ async function getAssetsFromGithubApi(opts) {
 }
 
 /**
+ * Downloads the assets from github release into folders based on platform and architecture.
+ * The folder name is derived from the logic found in node-gyp-build and @aminya/node-gyp-build
  * @param {{ force: boolean; token: string; version: string; destination: string; }} opts
  * @param {{url: string; name: string; }} asset
- * @return {Promise<void>} Downloaded file name
+ * @return {Promise<void>}
  */
-async function getAssetFromGithubApi(opts, asset) {
+async function downloadAssetFromGithubApi(opts, asset) {
   let platform = "";
   let libc = "glibc";
   if (asset.name.includes("win32")) {
@@ -180,6 +182,7 @@ async function getAssetFromGithubApi(opts, asset) {
   const archs = [];
   ["x64", "arm64", "armhf", "ia32"].forEach((item) => {
     if (item === "armhf" && asset.name.includes(item)) {
+      // For consistency with VS Code, arm is called armhf, however node-gyp expects `arm`.
       archs.push("arm");
     } else if (asset.name.includes(item)) {
       archs.push(item);
@@ -373,5 +376,7 @@ module.exports.download = async (opts) => {
 
   const assets = await getAssetsFromGithubApi(opts);
 
-  await Promise.all(assets.map((asset) => getAssetFromGithubApi(opts, asset)));
+  await Promise.all(
+    assets.map((asset) => downloadAssetFromGithubApi(opts, asset))
+  );
 };
