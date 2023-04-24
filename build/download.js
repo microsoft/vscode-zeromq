@@ -7,19 +7,16 @@
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
-const https = require("https");
+const https = require("follow-redirects").https;
 const util = require("util");
 const url = require("url");
-const URL = url.URL;
 const child_process = require("child_process");
 const proxy_from_env = require("proxy-from-env");
 
 const packageVersion = require("../package.json").version;
 const fsUnlink = util.promisify(fs.unlink);
-const fsCopyFile = util.promisify(fs.copyFile);
 const fsExists = util.promisify(fs.exists);
 const fsMkdir = util.promisify(fs.mkdir);
-const fsReadDir = util.promisify(fs.readdir);
 
 const isWindows = os.platform() === "win32";
 const tmpDir = path.join(os.tmpdir(), `vscode-zeromq-${packageVersion}`);
@@ -27,49 +24,6 @@ const REPO = "microsoft/zeromq-prebuilt";
 
 function isGithubUrl(_url) {
   return url.parse(_url).hostname === "api.github.com";
-}
-
-function downloadWin(url, dest, opts) {
-  return new Promise((resolve, reject) => {
-    let userAgent;
-    if (opts.headers["user-agent"]) {
-      userAgent = opts.headers["user-agent"];
-      delete opts.headers["user-agent"];
-    }
-    const headerValues = Object.keys(opts.headers)
-      .map((key) => `\\"${key}\\"=\\"${opts.headers[key]}\\"`)
-      .join("; ");
-    const headers = `@{${headerValues}}`;
-    console.log("Downloading with Invoke-WebRequest");
-    dest = sanitizePathForPowershell(dest);
-    let iwrCmd = `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -URI ${url} -UseBasicParsing -OutFile ${dest} -Headers ${headers}`;
-    if (userAgent) {
-      iwrCmd += " -UserAgent " + userAgent;
-    }
-    if (opts.proxy) {
-      iwrCmd += " -Proxy " + opts.proxy;
-
-      try {
-        const { username, password } = new URL(opts.proxy);
-        if (username && password) {
-          const decodedPassword = decodeURIComponent(password);
-          iwrCmd += ` -ProxyCredential (New-Object PSCredential ('${username}', (ConvertTo-SecureString '${decodedPassword}' -AsPlainText -Force)))`;
-        }
-      } catch (err) {
-        reject(err);
-      }
-    }
-
-    iwrCmd = `powershell "${iwrCmd}"`;
-
-    child_process.exec(iwrCmd, (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve();
-    });
-  });
 }
 
 async function download(_url, dest, opts) {
@@ -87,12 +41,6 @@ async function download(_url, dest, opts) {
     await fsMkdir(dir, { recursive: true });
   }
 
-  if (isWindows) {
-    // This alternative strategy shouldn't be necessary but sometimes on Windows the file does not get closed,
-    // so unzipping it fails, and I don't know why.
-    return downloadWin(_url, dest, opts);
-  }
-
   if (opts.headers && opts.headers.authorization && !isGithubUrl(_url)) {
     delete opts.headers.authorization;
   }
@@ -106,13 +54,7 @@ async function download(_url, dest, opts) {
     };
     https
       .get(mergedOpts, (response) => {
-        if (response.statusCode === 302) {
-          console.log("Following redirect to: " + response.headers.location);
-          return download(response.headers.location, dest, opts).then(
-            resolve,
-            reject
-          );
-        } else if (response.statusCode !== 200) {
+        if (response.statusCode !== 200) {
           reject(
             new Error(`Download ${_url} failed with ${response.statusCode}`)
           );
@@ -213,11 +155,13 @@ async function getAssetsFromGithubApi(opts) {
 }
 
 /**
+ * Downloads the assets from github release into folders based on platform and architecture.
+ * The folder name is derived from the logic found in node-gyp-build and @aminya/node-gyp-build
  * @param {{ force: boolean; token: string; version: string; destination: string; }} opts
  * @param {{url: string; name: string; }} asset
- * @return {Promise<void>} Downloaded file name
+ * @return {Promise<void>}
  */
-async function getAssetFromGithubApi(opts, asset) {
+async function downloadAssetFromGithubApi(opts, asset) {
   let platform = "";
   let libc = "glibc";
   if (asset.name.includes("win32")) {
@@ -236,12 +180,11 @@ async function getAssetFromGithubApi(opts, asset) {
   }
 
   const archs = [];
-  ["x64", "arm64", "arm", "ia32"].forEach((item) => {
-    if (!asset.name.includes(item)) {
-      return;
-    } else if (item === "arm" && !asset.name.includes("arm64")) {
-      archs.push(item);
-    } else if (item !== "arm") {
+  ["x64", "arm64", "armhf", "ia32"].forEach((item) => {
+    if (item === "armhf" && asset.name.includes(item)) {
+      // For consistency with VS Code, arm is called armhf, however node-gyp expects `arm`.
+      archs.push("arm");
+    } else if (asset.name.includes(item)) {
       archs.push(item);
     }
   });
@@ -328,12 +271,8 @@ function parseAsset(asset) {
   }
 
   const archs = new Set();
-  ["x64", "arm64", "arm", "ia32"].forEach((item) => {
-    if (!asset.name.includes(item)) {
-      return;
-    } else if (item === "arm" && !asset.name.includes("arm64")) {
-      archs.add(item);
-    } else if (item !== "arm") {
+  ["x64", "arm64", "armhf", "ia32"].forEach((item) => {
+    if (asset.name.includes(item)) {
       archs.add(item);
     }
   });
@@ -421,73 +360,23 @@ async function unzipFiles(zipPath, destinationDir) {
   }
 }
 
-/**
- * @param {{ name: string; url: string; }[]} assets
- * @param {{ 'win32'?: ('x64' | 'ia32' | 'arm64')[]; 'linux'?: ('arm' | 'x64' | 'arm64' | 'armhf')[]; 'darwin'?: ('x64' | 'arm64')[]; 'alpine'?: ('x64' | 'arm64')[]; }} platformOptions If not provided, then downloads all binaries for all platforms and archs.
- * @return {{ name: string; url: string; }[]} Assets to download
- */
-function getAssetsToDownload(assets, platformOptions) {
-  if (!assets || !Array.isArray(assets) || assets.length === 0) {
-    throw new Error("Missing asets");
-  }
-  if (!platformOptions || Object.keys(platformOptions).length === 0) {
-    return assets;
-  }
-
-  if (Object.keys(platformOptions).length === 0) {
-    throw new Error("Missing platformOptions[platform]");
-  }
-  console.log(
-    `getAssetsToDownload() => platformOptions: ${JSON.stringify(
-      platformOptions
-    )}`
-  );
-
-  assets = assets.filter((asset) => {
-    const info = parseAsset(asset);
-    if (info.platform in platformOptions) {
-      const archs =
-        info.platform in platformOptions ? platformOptions[info.platform] : [];
-      if (!Array.isArray(archs)) {
-        throw new Error(`Invalid archs for ${info.platform}: ${archs}`);
-      }
-      return archs.length === 0 || info.archs.length === 0
-        ? true
-        : archs.some((arch) => info.archs.includes(arch));
-    } else {
-      return false;
-    }
-  });
-
-  console.log(
-    `Filtered ${assets.length} assets (${assets
-      .map((a) => a.name)
-      .join(", ")}) to be downloaded for vscode-zeromq`
-  );
-  return assets;
-}
-
-module.exports.getAssetsToDownload = getAssetsToDownload;
 module.exports.parseAsset = parseAsset;
 
 /**
  * @param {{ force: boolean; token: string; version: string; destination: string; }} opts
- * @param {{ 'win32'?: ('x64' | 'ia32' | 'arm64')[]; 'linux'?: ('arm' | 'x64' | 'arm64' | 'armhf')[]; 'darwin'?: ('x64' | 'arm64')[]; 'alpine'?: ('x64' | 'arm64')[] }} platformOptions If not provided, then downloads all binaries for all platforms and archs.
  * @return {Promise<void>} File path to the downloaded asset
  */
-module.exports.download = async (opts, platformOptions) => {
+module.exports.download = async (opts) => {
   if (!opts.version) {
     return Promise.reject(new Error("Missing version"));
   }
   if (!opts.destination) {
     return Promise.reject(new Error("Missing destination"));
   }
-  if (platformOptions && Object.keys(platformOptions).length === 0) {
-    return Promise.reject(new Error("Missing platformOptions[platform]"));
-  }
 
-  let assets = await getAssetsFromGithubApi(opts);
-  assets = getAssetsToDownload(assets, platformOptions);
+  const assets = await getAssetsFromGithubApi(opts);
 
-  await Promise.all(assets.map((asset) => getAssetFromGithubApi(opts, asset)));
+  await Promise.all(
+    assets.map((asset) => downloadAssetFromGithubApi(opts, asset))
+  );
 };

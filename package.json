@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.15.0",
+    "follow-redirects": "^1.15.2",
     "https-proxy-agent": "^5.0.1",
     "proxy-from-env": "^1.1.0"
   },
