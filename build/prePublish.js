@@ -7,7 +7,7 @@ const path = require("path");
 const { download } = require("./download");
 const fs = require("fs");
 
-const VERSION = "6.0.0-beta.16.6";
+const VERSION = "6.0.0-beta.16.7";
 
 /**
  * Downloads the ZMQ binaries.
