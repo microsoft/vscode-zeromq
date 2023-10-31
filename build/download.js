@@ -181,6 +181,10 @@ async function downloadAssetFromGithubApi(opts, asset) {
 
   const archs = [];
   ["x64", "arm64", "armhf", "ia32"].forEach((item) => {
+    if (platform === "win32" && item === "ia32") {
+      // Windows 32bits are no longer supported
+      return;
+    }
     if (item === "armhf" && asset.name.includes(item)) {
       // For consistency with VS Code, arm is called armhf, however node-gyp expects `arm`.
       archs.push("arm");
@@ -272,6 +276,10 @@ function parseAsset(asset) {
 
   const archs = new Set();
   ["x64", "arm64", "armhf", "ia32"].forEach((item) => {
+    if (platform === "win32" && item === "ia32") {
+      // Windows 32bits are no longer supported
+      return;
+    }
     if (asset.name.includes(item)) {
       archs.add(item);
     }
