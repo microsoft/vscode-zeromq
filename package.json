@@ -1,6 +1,6 @@
 {
   "name": "@vscode/zeromq",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A module for copying zeromq binaries built using Azure Pipelines into the zeromq package.",
   "main": "lib/index.js",
   "repository": {
