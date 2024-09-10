@@ -17,6 +17,7 @@ const packageVersion = require("../package.json").version;
 const fsUnlink = util.promisify(fs.unlink);
 const fsExists = util.promisify(fs.exists);
 const fsMkdir = util.promisify(fs.mkdir);
+const fsRmdir = util.promisify(fs.rmdir);
 
 const isWindows = os.platform() === "win32";
 const tmpDir = path.join(os.tmpdir(), `vscode-zeromq-${packageVersion}`);
@@ -243,10 +244,18 @@ async function downloadAssetFromGithubApi(opts, asset) {
     await unzipFiles(assetDownloadFile, assetDestinationPath);
   } catch (e) {
     console.log("Deleting invalid download");
+    await fsUnlink(assetDownloadFile).catch(() => {});
 
-    try {
-      await fsUnlink(assetDownloadFile);
-    } catch (e) {}
+    throw e;
+  }
+
+  console.log("Renaming zeromq.* files to node.napi.*");
+  try {
+    await renameFiles(assetDestinationPath);
+  } catch (e) {
+    console.log("Deleting invalid download");
+    await fsUnlink(assetDownloadFile).catch(() => {});
+    await fsRmdir(assetDestinationPath, { recursive: true }).catch(() => {});
 
     throw e;
   }
@@ -365,6 +374,19 @@ async function unzipFiles(zipPath, destinationDir) {
     await unzipWindows(zipPath, destinationDir);
   } else {
     await unzipLinux(zipPath, destinationDir);
+  }
+}
+
+async function renameFiles(destinationDir) {
+  const files = fs.readdirSync(destinationDir);
+  for (const file of files) {
+    if (file.startsWith("zeromq.")) {
+      const newFileName = file.replaceAll("zeromq.", "node.napi.");
+      const curFilePath = path.join(destinationDir, file);
+      const newFilePath = path.join(destinationDir, newFileName);
+      console.info(`Renaming file ${curFilePath} to ${newFilePath}`);
+      fs.renameSync(curFilePath, newFilePath);
+    }
   }
 }
 
