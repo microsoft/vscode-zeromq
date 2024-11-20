@@ -34,8 +34,6 @@ extends:
           - script: npm run downloadBinaries
             displayName: Download Binaries
 
-        # The relevant files are already scanned elsewhere
-        skipApiScan: true
         apiScanSoftwareName: 'vscode-zeromq'
         apiScanSoftwareVersion: '0.2'
 
