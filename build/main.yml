@@ -34,6 +34,7 @@ extends:
           - script: npm run downloadBinaries
             displayName: Download Binaries
 
+        apiScanDependentPipelineId: '466' # zeromq-prebuilt
         apiScanExcludes: 'package/prebuilds/win32-arm64/**/*.*'
         apiScanSoftwareName: 'vscode-zeromq'
         apiScanSoftwareVersion: '0.2'
