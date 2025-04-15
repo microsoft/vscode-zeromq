@@ -259,6 +259,24 @@ async function downloadAssetFromGithubApi(opts, asset) {
 
     throw e;
   }
+
+  console.log("Deleting symbol files");
+  try {
+    const files = fs.readdirSync(assetDestinationPath);
+    for (const file of files) {
+      if (file.endsWith(".pdb")) {
+        const curFilePath = path.join(assetDestinationPath, file);
+        console.info(`Deleting file ${curFilePath}`);
+        fs.unlinkSync(curFilePath);
+      }
+    }
+  } catch (e) {
+    console.log("Deleting invalid download");
+    await fsUnlink(assetDownloadFile).catch(() => {});
+    await fsRmdir(assetDestinationPath, { recursive: true }).catch(() => {});
+    
+    throw e;
+  }
 }
 
 /**
