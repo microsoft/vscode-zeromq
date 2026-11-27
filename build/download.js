@@ -47,7 +47,6 @@ async function download(_url, dest, opts) {
   }
 
   return new Promise((resolve, reject) => {
-    console.log(`Download options: ${JSON.stringify(opts)}`);
     const outFile = fs.createWriteStream(dest);
     const mergedOpts = {
       ...url.parse(_url),
